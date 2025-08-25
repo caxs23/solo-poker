@@ -1,295 +1,156 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>혼자하는 포커 vs AI</title>
-<style>
-  body {
-    font-family: sans-serif;
-    text-align: center;
-    background: #2e7d32;
-    color: white;
-    padding: 20px;
-  }
-  .cards {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
-    flex-wrap: wrap;
-  }
-  .card {
-    width: 60px;
-    height: 90px;
-    border: 2px solid #fff;
-    border-radius: 8px;
-    background: #fff;
-    color: #000;
-    font-size: 18px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 5px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .held {
-    background: #fdd835;
-  }
-  button {
-    padding: 10px 20px;
-    font-size: 16px;
-    margin: 10px 5px;
-    cursor: pointer;
-  }
-  .info {
-    margin-top: 15px;
-    font-size: 18px;
-  }
-  .result {
-    font-size: 20px;
-    margin-top: 15px;
-    font-weight: bold;
-  }
-  .player-area, .ai-area {
-    margin-bottom: 30px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>모바일 포커 게임</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #0b3d91;
+      color: white;
+      margin: 0;
+      padding: 10px;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    .cards {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: white;
+      color: black;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 5px;
+      width: 18%;
+      text-align: center;
+      font-weight: bold;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      margin-top: 20px;
+      background: #f39c12;
+      border: none;
+      border-radius: 5px;
+      color: black;
+      font-weight: bold;
+    }
+    .result {
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-  <h1>혼자하는 포커 vs AI</h1>
-  <div class="player-area">
-    <h2>내 카드</h2>
-    <p>카드를 눌러 고정(hold)하고 다시 뽑으세요.</p>
+  <div class="container">
+    <h1>AI와 포커 대전</h1>
+
+    <h3>당신의 패</h3>
     <div class="cards" id="player-hand"></div>
-    <button id="draw-btn" onclick="drawHand()">카드 받기</button>
-    <button id="redraw-btn" onclick="redraw()" disabled>다시 뽑기</button>
-    <div class="info" id="player-info"></div>
-  </div>
 
-  <div class="ai-area">
-    <h2>AI 카드</h2>
+    <h3>AI의 패</h3>
     <div class="cards" id="ai-hand"></div>
-    <div class="info" id="ai-info"></div>
+
+    <button onclick="playGame()">게임 시작</button>
+
+    <div class="result" id="result"></div>
   </div>
 
-  <div class="result" id="result"></div>
-
-<script>
-const suits = ['♠', '♥', '♦', '♣'];
-const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-let deck = [];
-let playerHand = [];
-let aiHand = [];
-let held = [false, false, false, false, false];
-let redrawCount = 0;
-
-const handRanks = [
-  "하이카드",
-  "원페어",
-  "투페어",
-  "트리플",
-  "스트레이트",
-  "플러시",
-  "풀하우스",
-  "포카드",
-  "스트레이트 플러시",
-  "로열 플러시"
-];
-
-// 5장 포커 족보 대략 확률 (5장 드로우 포커 기준, %)
-const handProbabilities = {
-  "로열 플러시": 0.00015,
-  "스트레이트 플러시": 0.0015,
-  "포카드": 0.024,
-  "풀하우스": 0.144,
-  "플러시": 0.197,
-  "스트레이트": 0.392,
-  "트리플": 2.11,
-  "투페어": 4.75,
-  "원페어": 42.3,
-  "하이카드": 50.1
-};
-
-// --- 카드 덱 생성, 셔플 ---
-function createDeck() {
-  deck = [];
-  for (let suit of suits) {
-    for (let value of values) {
-      deck.push({ suit, value, rank: values.indexOf(value) });
+  <script>
+    const suits = ["♠", "♥", "♦", "♣"];
+    const values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    
+    function createDeck() {
+      const deck = [];
+      for (let suit of suits) {
+        for (let value of values) {
+          deck.push({ value, suit });
+        }
+      }
+      return deck;
     }
-  }
-  shuffle(deck);
-}
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
-
-// --- 족보 판단 함수 ---
-// 5장 카드 배열을 받고 족보 번호와 이름 리턴
-function evaluateHand(cards) {
-  const ranks = cards.map(c => c.rank).sort((a,b) => a-b);
-  const suitsArr = cards.map(c => c.suit);
-
-  const isFlush = suitsArr.every(s => s === suitsArr[0]);
-
-  // 스트레이트 체크 (Ace low도 고려)
-  function isStraight(ranks) {
-    for(let i=1; i<ranks.length; i++){
-      if(ranks[i] !== ranks[i-1]+1) return false;
+    function shuffle(deck) {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
     }
-    return true;
-  }
 
-  let straight = false;
-  if (isStraight(ranks)) {
-    straight = true;
-  } else {
-    // A,2,3,4,5 처리 위해 Ace=12를 0으로 변경 후 체크
-    if (ranks.includes(12)) {
-      let lowAceRanks = ranks.slice();
-      lowAceRanks[lowAceRanks.indexOf(12)] = -1;
-      lowAceRanks.sort((a,b) => a-b);
-      if (isStraight(lowAceRanks)) {
-        straight = true;
+    function drawHand(deck, count = 5) {
+      return deck.splice(0, count);
+    }
+
+    function displayHand(hand, elementId) {
+      const container = document.getElementById(elementId);
+      container.innerHTML = '';
+      for (let card of hand) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerText = `${card.value}${card.suit}`;
+        container.appendChild(div);
       }
     }
-  }
 
-  // 랭크별 개수 세기
-  let counts = {};
-  for (let r of ranks) counts[r] = (counts[r]||0)+1;
+    function evaluateHand(hand) {
+      // 족보 계산: (간단한 버전)
+      const counts = {};
+      const suits = {};
+      const valuesNum = hand.map(c => {
+        const valueMap = {J:11, Q:12, K:13, A:14};
+        return valueMap[c.value] || parseInt(c.value);
+      }).sort((a, b) => a - b);
 
-  const countsArr = Object.values(counts).sort((a,b) => b - a); // 내림차순
-  const distinctRanks = Object.keys(counts).length;
-
-  // 족보 판정
-  if (straight && isFlush && ranks.includes(8) && ranks.includes(9) && ranks.includes(10) && ranks.includes(11) && ranks.includes(12)) {
-    return {rank:9, name:"로열 플러시"};
-  }
-  if (straight && isFlush) return {rank:8, name:"스트레이트 플러시"};
-  if (countsArr[0] === 4) return {rank:7, name:"포카드"};
-  if (countsArr[0] === 3 && countsArr[1] === 2) return {rank:6, name:"풀하우스"};
-  if (isFlush) return {rank:5, name:"플러시"};
-  if (straight) return {rank:4, name:"스트레이트"};
-  if (countsArr[0] === 3) return {rank:3, name:"트리플"};
-  if (countsArr[0] === 2 && countsArr[1] === 2) return {rank:2, name:"투페어"};
-  if (countsArr[0] === 2) return {rank:1, name:"원페어"};
-  return {rank:0, name:"하이카드"};
-}
-
-// 족보 승부 비교 (높은 족보 승리, 동점 시 카드 비교 간략 처리)
-function compareHands(handA, handB) {
-  if (handA.rank > handB.rank) return 1;
-  if (handA.rank < handB.rank) return -1;
-
-  // 동점이면 카드 랭크 내림차순 비교
-  const aRanks = handA.cards.map(c => c.rank).sort((a,b)=>b-a);
-  const bRanks = handB.cards.map(c => c.rank).sort((a,b)=>b-a);
-
-  for(let i=0; i<aRanks.length; i++){
-    if (aRanks[i] > bRanks[i]) return 1;
-    if (aRanks[i] < bRanks[i]) return -1;
-  }
-  return 0; // 완전 동점
-}
-
-// --- UI 관련 ---
-function renderCards(containerId, cards, heldArray = []) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
-  cards.forEach((card, idx) => {
-    const cardDiv = document.createElement('div');
-    cardDiv.className = 'card' + (heldArray[idx] ? ' held' : '');
-    cardDiv.innerHTML = `${card.value}<br>${card.suit}`;
-    if(containerId === 'player-hand') {
-      cardDiv.onclick = () => {
-        held[idx] = !held[idx];
-        renderCards(containerId, cards, held);
+      for (let c of hand) {
+        counts[c.value] = (counts[c.value] || 0) + 1;
+        suits[c.suit] = (suits[c.suit] || 0) + 1;
       }
+
+      const isFlush = Object.keys(suits).length === 1;
+      const isStraight = valuesNum.every((v, i, arr) => i === 0 || v === arr[i - 1] + 1);
+
+      if (isStraight && isFlush && valuesNum[0] === 10) return { rank: "로열 스트레이트 플러시", prob: "0.000154%" };
+      if (isStraight && isFlush) return { rank: "스트레이트 플러시", prob: "0.00139%" };
+      if (Object.values(counts).includes(4)) return { rank: "포카드", prob: "0.024%" };
+      if (Object.values(counts).includes(3) && Object.values(counts).includes(2)) return { rank: "풀 하우스", prob: "0.144%" };
+      if (isFlush) return { rank: "플러시", prob: "0.197%" };
+      if (isStraight) return { rank: "스트레이트", prob: "0.392%" };
+      if (Object.values(counts).includes(3)) return { rank: "트리플", prob: "2.112%" };
+      if (Object.values(counts).filter(c => c === 2).length === 2) return { rank: "투 페어", prob: "4.753%" };
+      if (Object.values(counts).includes(2)) return { rank: "원 페어", prob: "42.256%" };
+      return { rank: "하이 카드", prob: "50.117%" };
     }
-    container.appendChild(cardDiv);
-  });
-}
 
-function displayInfo(id, handEval) {
-  const info = document.getElementById(id);
-  const prob = handProbabilities[handEval.name] || 0;
-  info.innerHTML = `패: <b>${handEval.name}</b> (확률 약 ${prob.toFixed(3)}%)`;
-}
+    function playGame() {
+      const deck = shuffle(createDeck());
+      const playerHand = drawHand(deck, 5);
+      const aiHand = drawHand(deck, 5);
 
-function displayResult(text) {
-  document.getElementById('result').textContent = text;
-}
+      displayHand(playerHand, 'player-hand');
+      displayHand(aiHand, 'ai-hand');
 
-function disableButtons(drawing) {
-  document.getElementById('draw-btn').disabled = drawing;
-  document.getElementById('redraw-btn').disabled = !drawing;
-}
+      const playerResult = evaluateHand(playerHand);
+      const aiResult = evaluateHand(aiHand);
 
-// --- 게임 로직 ---
-function drawHand() {
-  createDeck();
-  playerHand = [];
-  aiHand = [];
-  held = [false, false, false, false, false];
-  redrawCount = 0;
-
-  for (let i=0; i<5; i++) playerHand.push(deck.pop());
-  for (let i=0; i<5; i++) aiHand.push(deck.pop());
-
-  renderCards('player-hand', playerHand, held);
-  renderCards('ai-hand', aiHand, Array(5).fill(false));
-
-  const playerEval = evaluateHand(playerHand);
-  displayInfo('player-info', playerEval);
-
-  // AI 정보는 플레이어가 다시 뽑기 끝날 때까지 안 보여줌
-  document.getElementById('ai-info').textContent = "AI는 플레이어가 카드 뽑기를 마칠 때까지 기다립니다.";
-
-  displayResult('');
-  disableButtons(false);
-}
-
-function redraw() {
-  if (redrawCount >= 1) {
-    alert("다시 뽑기는 1회만 가능합니다.");
-    return;
-  }
-  redrawCount++;
-
-  for(let i=0; i<5; i++){
-    if (!held[i]) {
-      playerHand[i] = deck.pop();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `
+        <p><strong>당신:</strong> ${playerResult.rank} (${playerResult.prob})</p>
+        <p><strong>AI:</strong> ${aiResult.rank} (${aiResult.prob})</p>
+      `;
     }
-  }
-
-  renderCards('player-hand', playerHand, held);
-
-  const playerEval = evaluateHand(playerHand);
-  displayInfo('player-info', playerEval);
-
-  aiRedraw();
-
-  const aiEval = evaluateHand(aiHand);
-  renderCards('ai-hand', aiHand, Array(5).fill(false));
-  displayInfo('ai-info', aiEval);
-
-  const cmp = compareHands(
-    {rank: playerEval.rank, cards: playerHand},
-    {rank: aiEval.rank, cards: aiHand}
-  );
-  if (cmp > 0) displayResult("🎉 당신이 이겼습니다!");
-  else if (cmp < 0) displayResult("💻 AI가 이겼습니다!");
-  else displayResult("🤝 무승부입니다.");
-
-  disableButtons(true);
-}
-
-function aiRedraw() {
-  // AI는 간단히 랜덤으로 1~3장 교체,
+  </script>
+</body>
+</html>
