@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>혼자하는 포커</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #2e7d32;
+      color: white;
+      padding: 20px;
+    }
+    .cards {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .card {
+      width: 60px;
+      height: 90px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      background: #fff;
+      color: #000;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 5px;
+      cursor: pointer;
+    }
+    .held {
+      background: #fdd835;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>혼자하는 포커</h1>
+  <p>카드를 눌러 고정하고 다시 뽑으세요.</p>
+  <div class="cards" id="hand"></div>
+  <button onclick="drawHand()">카드 받기</button>
+  <button onclick="redraw()">다시 뽑기</button>
+
+  <script>
+    const suits = ['♠', '♥', '♦', '♣'];
+    const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    let deck = [];
+    let hand = [];
+    let held = [];
+
+    function createDeck() {
+      deck = [];
+      for (let suit of suits) {
+        for (let value of values) {
+          deck.push({ suit, value });
+        }
+      }
+      shuffle(deck);
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function drawHand() {
+      createDeck();
+      hand = [];
+      held = [false, false, false, false, false];
+      for (let i = 0; i < 5; i++) {
+        hand.push(deck.pop());
+      }
+      renderHand();
+    }
+
+    function redraw() {
+      for (let i = 0; i < 5; i++) {
+        if (!held[i]) {
+          hand[i] = deck.pop();
+        }
+      }
+      renderHand();
+    }
+
+    function toggleHold(index) {
+      held[index] = !held[index];
+      renderHand();
+    }
+
+    function renderHand() {
+      const handDiv = document.getElementById('hand');
+      handDiv.innerHTML = '';
+      hand.forEach((card, index) => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'card' + (held[index] ? ' held' : '');
+        cardDiv.innerHTML = `${card.value}<br>${card.suit}`;
+        cardDiv.onclick = () => toggleHold(index);
+        handDiv.appendChild(cardDiv);
+      });
+    }
+
+    drawHand(); // 첫 손 자동 배분
+  </script>
+</body>
+</html>
