@@ -274,15 +274,12 @@ function redraw() {
   const playerEval = evaluateHand(playerHand);
   displayInfo('player-info', playerEval);
 
-  // AI도 한 번 다시 뽑기 (간단히 무작위로 랜덤 선택 1~3장 교체)
   aiRedraw();
 
-  // AI 족보 보여주기
   const aiEval = evaluateHand(aiHand);
   renderCards('ai-hand', aiHand, Array(5).fill(false));
   displayInfo('ai-info', aiEval);
 
-  // 승부판정
   const cmp = compareHands(
     {rank: playerEval.rank, cards: playerHand},
     {rank: aiEval.rank, cards: aiHand}
@@ -295,25 +292,4 @@ function redraw() {
 }
 
 function aiRedraw() {
-  // AI는 간단히 랜덤으로 1~3장 교체
-  let changeCount = Math.floor(Math.random() * 3) + 1;
-  for(let i=0; i<changeCount; i++) {
-    let idx;
-    do {
-      idx = Math.floor(Math.random() * 5);
-    } while(aiHand[idx] === null);
-    aiHand[idx] = null;
-  }
-  for(let i=0; i<5; i++) {
-    if(aiHand[i] === null) {
-      aiHand[i] = deck.pop();
-    }
-  }
-}
-
-// --- 페이지 로드 시 자동 실행 ---
-drawHand();
-
-</script>
-</body>
-</html>
+  // AI는 간단히 랜덤으로 1~3장 교체,
