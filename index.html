@@ -1,155 +1,181 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>모바일 포커 게임</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #0b3d91;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #004d40, #00251a);
       color: white;
-      margin: 0;
-      padding: 10px;
-    }
-    .container {
-      max-width: 500px;
-      margin: auto;
-    }
-    h1 {
       text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: rgba(0,0,0,0.4);
+    }
+    #gameArea {
+      padding: 1rem;
     }
     .cards {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       flex-wrap: wrap;
+      margin: 1rem 0;
     }
     .card {
+      width: 60px;
+      height: 90px;
       background: white;
       color: black;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 5px;
-      width: 18%;
-      text-align: center;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+      margin: 0.3rem;
       font-weight: bold;
+      animation: deal 0.5s ease;
+    }
+    @keyframes deal {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    #info {
+      margin: 1rem;
+      font-size: 1rem;
+      background: rgba(0,0,0,0.4);
+      padding: 1rem;
+      border-radius: 12px;
     }
     button {
-      width: 100%;
-      padding: 15px;
-      font-size: 18px;
-      margin-top: 20px;
-      background: #f39c12;
+      padding: 0.8rem 1.5rem;
+      margin: 0.5rem;
+      font-size: 1rem;
       border: none;
-      border-radius: 5px;
-      color: black;
-      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #ff9800;
+      color: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+      transition: 0.3s;
     }
-    .result {
-      margin-top: 20px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 10px;
-      border-radius: 5px;
+    button:hover {
+      background: #ffa726;
+    }
+    @media(max-width:600px){
+      .card{width:50px;height:75px;font-size:1rem;}
+      button{width:90%;}
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI와 포커 대전</h1>
-
-    <h3>당신의 패</h3>
-    <div class="cards" id="player-hand"></div>
-
-    <h3>AI의 패</h3>
-    <div class="cards" id="ai-hand"></div>
-
-    <button onclick="playGame()">게임 시작</button>
-
-    <div class="result" id="result"></div>
+  <header>모바일 포커 (플레이어 vs AI)</header>
+  <div id="gameArea">
+    <div><button onclick="startGame()">새 게임 시작</button></div>
+    <h2>당신의 카드</h2>
+    <div id="playerCards" class="cards"></div>
+    <h2>AI 카드</h2>
+    <div id="aiCards" class="cards"></div>
+    <h2>공용 카드</h2>
+    <div id="tableCards" class="cards"></div>
+    <div id="info">게임 정보를 여기에 표시합니다.</div>
   </div>
 
   <script>
     const suits = ["♠", "♥", "♦", "♣"];
-    const values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-    
-    function createDeck() {
-      const deck = [];
-      for (let suit of suits) {
-        for (let value of values) {
-          deck.push({ value, suit });
+    const ranks = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+
+    function createDeck(){
+      let deck=[];
+      for(let s of suits){
+        for(let r of ranks){
+          deck.push(r+s);
         }
       }
       return deck;
     }
 
-    function shuffle(deck) {
-      for (let i = deck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [deck[i], deck[j]] = [deck[j], deck[i]];
+    function shuffle(deck){
+      for(let i=deck.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1));
+        [deck[i],deck[j]]=[deck[j],deck[i]];
       }
       return deck;
     }
 
-    function drawHand(deck, count = 5) {
-      return deck.splice(0, count);
-    }
-
-    function displayHand(hand, elementId) {
-      const container = document.getElementById(elementId);
-      container.innerHTML = '';
-      for (let card of hand) {
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerText = `${card.value}${card.suit}`;
+    function displayCards(container,cards){
+      container.innerHTML="";
+      cards.forEach(c=>{
+        let div=document.createElement("div");
+        div.className="card";
+        div.innerText=c;
         container.appendChild(div);
-      }
+      });
     }
 
-    function evaluateHand(hand) {
-      // 족보 계산: (간단한 버전)
-      const counts = {};
-      const suits = {};
-      const valuesNum = hand.map(c => {
-        const valueMap = {J:11, Q:12, K:13, A:14};
-        return valueMap[c.value] || parseInt(c.value);
-      }).sort((a, b) => a - b);
-
-      for (let c of hand) {
-        counts[c.value] = (counts[c.value] || 0) + 1;
-        suits[c.suit] = (suits[c.suit] || 0) + 1;
-      }
-
-      const isFlush = Object.keys(suits).length === 1;
-      const isStraight = valuesNum.every((v, i, arr) => i === 0 || v === arr[i - 1] + 1);
-
-      if (isStraight && isFlush && valuesNum[0] === 10) return { rank: "로열 스트레이트 플러시", prob: "0.000154%" };
-      if (isStraight && isFlush) return { rank: "스트레이트 플러시", prob: "0.00139%" };
-      if (Object.values(counts).includes(4)) return { rank: "포카드", prob: "0.024%" };
-      if (Object.values(counts).includes(3) && Object.values(counts).includes(2)) return { rank: "풀 하우스", prob: "0.144%" };
-      if (isFlush) return { rank: "플러시", prob: "0.197%" };
-      if (isStraight) return { rank: "스트레이트", prob: "0.392%" };
-      if (Object.values(counts).includes(3)) return { rank: "트리플", prob: "2.112%" };
-      if (Object.values(counts).filter(c => c === 2).length === 2) return { rank: "투 페어", prob: "4.753%" };
-      if (Object.values(counts).includes(2)) return { rank: "원 페어", prob: "42.256%" };
-      return { rank: "하이 카드", prob: "50.117%" };
+    function rankValue(r){
+      if(r=="A") return 14;
+      if(r=="K") return 13;
+      if(r=="Q") return 12;
+      if(r=="J") return 11;
+      return parseInt(r);
     }
 
-    function playGame() {
-      const deck = shuffle(createDeck());
-      const playerHand = drawHand(deck, 5);
-      const aiHand = drawHand(deck, 5);
+    // 간단한 족보 평가 (원페어, 투페어, 트리플, 스트레이트, 플러시, 풀하우스, 포카드, 스트레이트 플러시)
+    function evaluateHand(cards){
+      let ranksOnly=cards.map(c=>c.slice(0,-1));
+      let suitsOnly=cards.map(c=>c.slice(-1));
+      let counts={};
+      ranksOnly.forEach(r=>counts[r]=(counts[r]||0)+1);
+      let values=ranksOnly.map(rankValue).sort((a,b)=>a-b);
 
-      displayHand(playerHand, 'player-hand');
-      displayHand(aiHand, 'ai-hand');
+      let flush = suitsOnly.every(s=>s===suitsOnly[0]);
+      let straight = values.every((v,i)=>i===0||v===values[i-1]+1);
 
-      const playerResult = evaluateHand(playerHand);
-      const aiResult = evaluateHand(aiHand);
+      let freq=Object.values(counts).sort((a,b)=>b-a);
 
-      const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = `
-        <p><strong>당신:</strong> ${playerResult.rank} (${playerResult.prob})</p>
-        <p><strong>AI:</strong> ${aiResult.rank} (${aiResult.prob})</p>
-      `;
+      if(straight && flush) return {rank:8,name:"스트레이트 플러시"};
+      if(freq[0]===4) return {rank:7,name:"포카드"};
+      if(freq[0]===3 && freq[1]===2) return {rank:6,name:"풀하우스"};
+      if(flush) return {rank:5,name:"플러시"};
+      if(straight) return {rank:4,name:"스트레이트"};
+      if(freq[0]===3) return {rank:3,name:"트리플"};
+      if(freq[0]===2 && freq[1]===2) return {rank:2,name:"투페어"};
+      if(freq[0]===2) return {rank:1,name:"원페어"};
+      return {rank:0,name:"하이카드"};
+    }
+
+    function startGame(){
+      let deck=shuffle(createDeck());
+      let player=[deck.pop(),deck.pop()];
+      let ai=[deck.pop(),deck.pop()];
+      let table=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
+
+      displayCards(document.getElementById("playerCards"),player);
+      displayCards(document.getElementById("aiCards"),ai.map(()=>"🂠")); // AI는 뒷면으로
+      displayCards(document.getElementById("tableCards"),table);
+
+      let playerHand=evaluateHand(player.concat(table));
+      let aiHand=evaluateHand(ai.concat(table));
+
+      let info=document.getElementById("info");
+      info.innerHTML=`당신의 족보: <b>${playerHand.name}</b><br>
+      AI의 족보: <b>${aiHand.name}</b><br>`;
+
+      if(playerHand.rank>aiHand.rank){
+        info.innerHTML+="<br><span style='color:yellow'>당신의 승리!</span>";
+      } else if(playerHand.rank<aiHand.rank){
+        info.innerHTML+="<br><span style='color:red'>AI 승리!</span>";
+      } else {
+        info.innerHTML+="<br><span style='color:lightblue'>무승부</span>";
+      }
     }
   </script>
 </body>
